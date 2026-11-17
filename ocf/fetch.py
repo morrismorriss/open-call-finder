@@ -1,6 +1,7 @@
 """Reading sources: RSS/Atom feeds, Substack newsletters and plain web pages."""
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -83,7 +84,9 @@ class PoliteClient:
         if not self.allowed(url):
             raise SkipSource(f"robots.txt asks bots not to read {url}")
         host = urlsplit(url).netloc
-        wait = self.delay - (time.time() - self._last_hit.get(host, 0))
+        # Honour the site's own Crawl-delay if it asks for more (capped at 60s).
+        delay = max(self.delay, min(float(self._robots_for(url).crawl_delay(USER_AGENT) or 0), 60))
+        wait = delay - (time.time() - self._last_hit.get(host, 0))
         if wait > 0:
             time.sleep(wait)
         last_err = None
@@ -124,7 +127,8 @@ def _entry_date(entry) -> datetime | None:
     return None
 
 
-def read_feed(client: PoliteClient, src: dict, since: datetime) -> list[Post]:
+def read_feed(client: PoliteClient, src: dict, since: datetime,
+              seen: set[str], max_posts: int) -> list[Post]:
     resp = client.get(feed_url_for(src))
     feed = feedparser.parse(resp.content)
     if feed.bozo and not feed.entries:
@@ -146,12 +150,50 @@ def read_feed(client: PoliteClient, src: dict, since: datetime) -> list[Post]:
             continue
         if looks_paywalled(text) and len(text) < 1500:
             continue
+        link = e.get("link", "")
+        title = html_to_text(e.get("title", ""))
+        title_kw = [k.lower() for k in (src.get("title_keywords") or [])]
+        if title_kw and not any(k in title.lower() for k in title_kw):
+            continue  # don't even open posts the title filter would drop
+        if src.get("fetch_full_post") and link:
+            # The feed only has a teaser: open the post itself (new posts only).
+            if (normalize_url(link) or link) in seen:
+                continue
+            if len(posts) >= max_posts:
+                break
+            try:
+                page_title, full = _page_text(client, link, src)
+            except SkipSource:
+                continue
+            if full is None:
+                continue
+            text, title = full, title or page_title
         posts.append(Post(
-            source=src["name"], title=html_to_text(e.get("title", "")) or "(untitled)",
-            url=e.get("link", ""), published=published, text=text,
+            source=src["name"], title=title or "(untitled)",
+            url=link, published=published, text=text,
             tags=list(src.get("tags") or []),
         ))
     return posts
+
+
+def _page_text(client: PoliteClient, href: str, src: dict) -> tuple[str | None, str | None]:
+    """Open one post page. Returns (title, text); text is None if locked/empty."""
+    page = client.get(href)
+    psoup = BeautifulSoup(page.text, "html.parser")
+    og = psoup.find("meta", attrs={"property": "og:title"})
+    title = og.get("content") if og else None
+    content_sel = src.get("content_selector")
+    if content_sel:
+        node = psoup.select_one(content_sel)
+        if node is None:
+            # The usual body is missing: almost always a locked/paywalled post.
+            return title, None
+    else:
+        node = psoup.find("article") or psoup.find("main") or psoup.body or psoup
+    text = html_to_text(str(node))
+    if looks_paywalled(text) or len(text) < int(src.get("min_text_chars", 200)):
+        return title, None
+    return title, text
 
 
 def _published_from_html(soup: BeautifulSoup) -> datetime | None:
@@ -178,8 +220,11 @@ def read_webpage(client: PoliteClient, src: dict, since: datetime,
     resp = client.get(src["url"])
     soup = BeautifulSoup(resp.text, "html.parser")
     selector = src.get("link_selector") or "article a[href], h2 a[href], h3 a[href]"
+    pattern = re.compile(src["link_pattern"]) if src.get("link_pattern") else None
     links, order = {}, []
     for a in soup.select(selector):
+        if pattern and not pattern.search(a.get("href", "")):
+            continue
         href = urljoin(src["url"], a.get("href", ""))
         if not href.startswith("http"):
             continue
@@ -203,21 +248,19 @@ def read_webpage(client: PoliteClient, src: dict, since: datetime,
             continue
         psoup = BeautifulSoup(page.text, "html.parser")
         published = _published_from_html(psoup)
-        if published and not src.get("ignore_dates"):
-            if published.tzinfo is None:
-                published = published.replace(tzinfo=timezone.utc)
-            if published < since:
-                continue
+        if published and published.tzinfo is None:
+            published = published.replace(tzinfo=timezone.utc)
+        if published and not src.get("ignore_dates") and published < since:
+            continue
         content_sel = src.get("content_selector")
         if content_sel:
             node = psoup.select_one(content_sel)
             if node is None:
                 # The usual body is missing: almost always a locked/paywalled post.
                 continue
-            text = html_to_text(str(node))
         else:
             node = psoup.find("article") or psoup.find("main") or psoup.body or psoup
-            text = html_to_text(str(node))
+        text = html_to_text(str(node))
         if looks_paywalled(text) or len(text) < int(src.get("min_text_chars", 200)):
             continue
         og = psoup.find("meta", attrs={"property": "og:title"})
@@ -231,9 +274,10 @@ def read_source(client: PoliteClient, src: dict, since: datetime,
                 seen: set[str], max_posts: int) -> list[Post]:
     if src.get("members_only"):
         raise SkipSource("marked members_only in sources.yaml — logins aren't supported")
+    max_posts = min(int(src.get("max_posts", max_posts)), max_posts)
     kind = (src.get("type") or "rss").lower()
     if kind in ("rss", "substack", "atom", "feed"):
-        posts = read_feed(client, src, since)
+        posts = read_feed(client, src, since, seen, max_posts)
     elif kind == "webpage":
         posts = read_webpage(client, src, since, seen, max_posts)
     else:

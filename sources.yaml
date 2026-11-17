@@ -8,12 +8,24 @@
 #   url:   the address
 #   tags:  optional labels, just for you
 #   enabled: false   – pauses a source without deleting it
+#   max_posts: N     – read at most N new posts from this source per run
+#   title_keywords: [a, b] – only keep posts whose title contains one of these words
+#   ignore_dates: true – don't skip old posts (for directories where listings stay up
+#                        for months; "already seen" + deadline checks still apply)
 #
 # Extra options for type: webpage
 #   link_selector:    which links on the page are posts (a CSS selector)
+#   link_pattern:     optional extra filter: only links whose address matches this
+#                     regular expression
 #   content_selector: where the post's text lives on each post page; if a post page
 #                     doesn't have it, the post is treated as locked/paywalled and skipped
-#   ignore_dates:     true = don't skip old posts (for directories where listings stay up)
+#
+# Extra option for type: rss
+#   fetch_full_post: true – the feed only has a short teaser, so open each new post
+#                           (uses content_selector too, if given)
+#
+# Sites that ask for a pause between visits (robots.txt "Crawl-delay") get it
+# automatically, so sources like TransArtists (30 seconds) are read slowly on purpose.
 #
 # ---------------------------------------------------------------------------
 
@@ -60,6 +72,71 @@ sources:
     content_selector: 'article'
     ignore_dates: true
     tags: [residency]
+
+  - name: Play Submissions Helper
+    type: rss
+    # The full database is a paid membership (skipped), but the free blog posts
+    # monthly roundups like "36 Play Submissions Opps w/ November Deadlines".
+    url: https://playsubmissionshelper.com/feed/
+    fetch_full_post: true
+    content_selector: '.entry-content'
+    # Only the roundup posts, not the advice articles:
+    title_keywords: [opps, opportunities, deadlines]
+    max_posts: 5
+    tags: [playwriting]
+
+  - name: CallFor
+    type: rss
+    # Mostly visual-art, photography and exhibition calls; the feed has teasers only.
+    url: https://www.callfor.org/feed/
+    fetch_full_post: true
+    max_posts: 10
+    tags: [visual art]
+
+  - name: Artist Communities Alliance
+    type: webpage
+    # Residency directory (overlaps with Res Artis; duplicates are caught).
+    url: https://artistcommunities.org/directory/open-calls
+    link_selector: 'a[href^="/directory/open-calls/"]'
+    content_selector: 'article'
+    ignore_dates: true
+    tags: [residency]
+
+  - name: TransArtists
+    type: webpage
+    # Asks bots to wait 30 seconds between pages, so we read only a few per day.
+    url: https://www.transartists.org/en/transartists-calls
+    link_selector: 'a[href^="/en/news/"]'
+    ignore_dates: true
+    max_posts: 6
+    tags: [residency]
+
+  - name: opencalls.ai
+    type: webpage
+    url: https://opencalls.ai/
+    link_selector: 'a[href^="/opencalls/"]'
+    content_selector: 'main'
+    ignore_dates: true
+    max_posts: 15
+
+  - name: Art Jobs Performance
+    type: webpage
+    # Art Jobs' Dance & Performance category. Asks for 10 seconds between pages.
+    url: https://www.artjobs.com/open-calls/performance
+    link_selector: 'a[href]'
+    link_pattern: '^/open-calls/[^/]+/(?:[^/]+/)?\d+/'
+    ignore_dates: true
+    max_posts: 10
+    tags: [performance]
+
+  - name: Art Jobs Film
+    type: webpage
+    url: https://www.artjobs.com/open-calls/films
+    link_selector: 'a[href]'
+    link_pattern: '^/open-calls/[^/]+/(?:[^/]+/)?\d+/'
+    ignore_dates: true
+    max_posts: 10
+    tags: [film]
 
   - name: Playwrights' Center
     type: webpage

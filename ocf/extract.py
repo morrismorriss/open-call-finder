@@ -90,6 +90,8 @@ class Extractor:
         self.profile = os.environ.get("OCF_PROFILE", "").strip() or cfg.get("profile", "an artist")
         self.calls_made = 0
         self.failures_in_a_row = 0
+        # Total seconds we're willing to sit waiting on rate limits in one run.
+        self.wait_budget = float(ai.get("max_rate_limit_wait_seconds", 240))
         self._last = 0.0
         self._models = None
         self._configured_model = ai.get("model", "auto")
@@ -159,10 +161,15 @@ class Extractor:
                         self.log(f"  (daily free quota reached for {model})")
                         self._models.remove(model)
                         break
-                    delay = 30
+                    delay = 20
                     m = re.search(r'"retryDelay":\s*"(\d+)', body)
                     if m:
-                        delay = min(int(m.group(1)) + 2, 90)
+                        delay = min(int(m.group(1)) + 2, 60)
+                    if delay > self.wait_budget:
+                        self.enabled = False
+                        self.disabled_reason = "Gemini kept rate-limiting; out of waiting time for this run"
+                        return None
+                    self.wait_budget -= delay
                     self.log(f"  (Gemini rate limit; waiting {delay}s)")
                     time.sleep(delay)
                     continue

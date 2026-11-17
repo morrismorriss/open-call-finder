@@ -166,7 +166,11 @@ def main(argv=None) -> int:
         added_here = 0
         stats["posts"] += len(posts)
         log(f"  {len(posts)} new post(s)")
+        title_kw = [k.lower() for k in (src.get("title_keywords") or [])]
         for post in posts:
+            if title_kw and not any(k in post.title.lower() for k in title_kw):
+                seen[post.key] = today.isoformat()
+                continue
             if not passes_keywords(post, keywords, exclude):
                 seen[post.key] = today.isoformat()
                 continue

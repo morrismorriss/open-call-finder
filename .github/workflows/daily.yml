@@ -28,7 +28,7 @@ concurrency:
 jobs:
   find-calls:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Is it 6 AM in New York?
         id: gate
