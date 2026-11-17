@@ -92,6 +92,11 @@ class Extractor:
         self.failures_in_a_row = 0
         # Total seconds we're willing to sit waiting on rate limits in one run.
         self.wait_budget = float(ai.get("max_rate_limit_wait_seconds", 240))
+        # Hard limit on time spent in the AI step per run; after that, keyword mode.
+        self.stop_at = time.time() + 60 * float(ai.get("max_minutes_per_run", 15))
+        self.request_timeout = float(ai.get("request_timeout_seconds", 60))
+        self._timeouts: dict[str, int] = {}
+        self._thinking_step: dict[str, int] = {}
         self._last = 0.0
         self._models = None
         self._configured_model = ai.get("model", "auto")
@@ -117,30 +122,58 @@ class Extractor:
                     continue
                 mt = re.fullmatch(r"gemini-(\d+(?:\.\d+)?)-flash(-lite)?", name)
                 if mt:  # stable Flash / Flash-Lite only (no preview, image, tts...)
-                    found.append((float(mt.group(1)), 1 if mt.group(2) else 0, name))
-            # Newest version first; within a version prefer Flash-Lite (bigger free quota).
+                    found.append((1 if mt.group(2) else 0, float(mt.group(1)), name))
+            # Flash-Lite first (fast, biggest free quota), newest first; then Flash.
             found.sort(key=lambda t: (t[0], t[1]), reverse=True)
             self._models = [n for *_, n in found] or FALLBACK_MODELS
         except requests.RequestException as e:
             self.log(f"  (couldn't list Gemini models: {e}; using defaults)")
             self._models = FALLBACK_MODELS
+        self.log(f"  (Gemini models to try, in order: {', '.join(self._models[:4])})")
         return self._models
+
+    @staticmethod
+    def _thinking_options(model: str) -> list[dict | None]:
+        """Ask for as little "thinking" as the model allows: it's slow and not needed
+        for copying details out of a post. Older/newer models name this differently,
+        so we try each form and fall back to sending nothing."""
+        m = re.search(r"gemini-(\d+)", model)
+        if m and int(m.group(1)) >= 3:
+            return [{"thinkingLevel": "minimal"}, {"thinkingLevel": "low"}, None]
+        return [{"thinkingBudget": 0}, None]
+
+    def _drop(self, model: str):
+        if model in self._models:
+            self._models.remove(model)
 
     # ---------- the API call ----------
     def _call(self, prompt: str) -> dict | None:
         for model in list(self._pick_models()):
-            for attempt in range(3):
+            for attempt in range(4):
+                if time.time() > self.stop_at:
+                    self.enabled = False
+                    self.disabled_reason = "reached the AI time limit for this run (max_minutes_per_run)"
+                    return None
                 wait = self.min_gap - (time.time() - self._last)
                 if wait > 0:
                     time.sleep(wait)
                 self._last = time.time()
+                options = self._thinking_options(model)
+                step = self._thinking_step.get(model, 0)
+                gen = {"temperature": 0.1, "responseMimeType": "application/json"}
+                if step < len(options) and options[step]:
+                    gen["thinkingConfig"] = options[step]
                 try:
                     r = self.session.post(
                         f"{GEMINI_BASE}/models/{model}:generateContent",
-                        json={"contents": [{"parts": [{"text": prompt}]}],
-                              "generationConfig": {"temperature": 0.1,
-                                                   "responseMimeType": "application/json"}},
-                        timeout=90)
+                        json={"contents": [{"parts": [{"text": prompt}]}], "generationConfig": gen},
+                        timeout=self.request_timeout)
+                except requests.Timeout:
+                    n = self._timeouts[model] = self._timeouts.get(model, 0) + 1
+                    self.log(f"  ({model} took too long" + ("; not using it again this run)" if n >= 2 else ")"))
+                    if n >= 2:
+                        self._drop(model)
+                    break  # try the next model for this post
                 except requests.RequestException as e:
                     self.log(f"  (Gemini network error: {e})")
                     time.sleep(5)
@@ -149,17 +182,20 @@ class Extractor:
                 if r.status_code == 200:
                     try:
                         parts = r.json()["candidates"][0]["content"]["parts"]
-                        raw = "".join(p.get("text", "") for p in parts)
+                        raw = "".join(p.get("text", "") for p in parts if not p.get("thought"))
                         return json.loads(raw)
                     except (KeyError, IndexError, ValueError):
                         self.log("  (Gemini answer wasn't valid JSON; keyword mode for this post)")
                         return None
+                if r.status_code == 400 and "thinking" in r.text.lower() and step + 1 < len(options):
+                    self._thinking_step[model] = step + 1  # this model wants a different setting
+                    continue
                 if r.status_code == 429:
                     body = r.text
                     if "PerDay" in body or "per day" in body.lower():
                         # Daily free quota used up on this model; try the next model.
                         self.log(f"  (daily free quota reached for {model})")
-                        self._models.remove(model)
+                        self._drop(model)
                         break
                     delay = 20
                     m = re.search(r'"retryDelay":\s*"(\d+)', body)
@@ -174,7 +210,7 @@ class Extractor:
                     time.sleep(delay)
                     continue
                 if r.status_code in (400, 404) and "not found" in r.text.lower():
-                    self._models.remove(model)
+                    self._drop(model)
                     break
                 if r.status_code in (401, 403):
                     self.enabled, self.disabled_reason = False, "Gemini key rejected (check GEMINI_API_KEY)"
@@ -185,7 +221,7 @@ class Extractor:
                 self.log(f"  (Gemini error {r.status_code}: {r.text[:200]})")
                 return None
         if not self._models:
-            self.enabled, self.disabled_reason = False, "Gemini free quota used up for today"
+            self.enabled, self.disabled_reason = False, "no Gemini model available (free quota used up or too slow)"
         return None
 
     # ---------- public ----------

@@ -75,3 +75,11 @@ ai:
   # Long roundup posts are cut to this many characters before sending.
   max_chars_per_post: 15000
   max_calls_per_post: 40
+  # Give up on a single request after this many seconds (then try another model).
+  request_timeout_seconds: 60
+  # Never spend more than this many minutes on the AI step in one run;
+  # anything left is added in keyword-only mode.
+  max_minutes_per_run: 15
+  # true = when the AI runs out of time or quota, leave the remaining posts for the
+  # next run (so they get full details) instead of adding them with blanks.
+  defer_when_ai_runs_out: true

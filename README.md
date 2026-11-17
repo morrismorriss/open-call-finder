@@ -12,8 +12,9 @@ A small, free tool for artists. Every morning (about **6:07 AM US Eastern** by d
 calls, festivals, workshops, and jobs or gigs for artists.
 
 It costs $0. It runs on GitHub's free computers (GitHub Actions), and uses the free tiers of
-Notion's API and Google Gemini. If Gemini is missing or out of free quota, it still adds the
-post's title, link and source (plus a deadline if it can spot one), and leaves the rest blank.
+Notion's API and Google Gemini. Without a Gemini key, it still adds the post's title, link and
+source (plus a deadline if it can spot one), and leaves the rest blank. With a key, any posts
+the AI can't get to on a given day are saved for the next day.
 
 You don't need to know how to code. The steps below are all clicking and pasting.
 
@@ -221,9 +222,10 @@ them, `GEMINI_API_KEY` and `OCF_PROFILE` as environment variables first.
 - **Roundup posts:** newsletters that list 20–30 jobs at once become 20–30 rows when Gemini is
   on, and one row when it's off. Use `skip_irrelevant: true` if that's too much.
 - **Gemini's free tier:** Google changes the free models and limits from time to time, and
-  doesn't promise them. The tool picks the newest free Flash model on its own, waits 8
-  seconds between requests, stops at 80 requests a run, and falls back to keyword mode if
-  the quota runs out. Google may use free-tier inputs to improve its products. The tool only
+  doesn't promise them. The tool picks the fastest free model on its own (Flash-Lite) and
+  keeps its "thinking" to a minimum. It waits 8 seconds between requests and stops at 80
+  requests or 15 minutes per run. Posts it didn't get to are saved for the next day's run, so
+  the first few days after setup work through a backlog. Google may use free-tier inputs to improve its products. The tool only
   sends public posts (plus your `OCF_PROFILE` sentence, if you set one).
 - **AI accuracy:** extracted details (especially deadlines, fees and "remote") are usually
   right but sometimes wrong. Always check the official call before applying.

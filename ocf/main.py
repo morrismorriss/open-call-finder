@@ -107,6 +107,9 @@ def main(argv=None) -> int:
         since = datetime.fromisoformat(state["last_run"]) - timedelta(days=1)
     else:
         since = now - timedelta(days=int(cfg.get("first_run_days", 14)))
+    if not args.days and state.get("deferred_since"):
+        # Some posts were left for today because the AI ran out last time: look back far enough.
+        since = min(since, datetime.fromisoformat(state["deferred_since"]))
     max_posts = args.max_posts or int(cfg.get("max_posts_per_source", 25))
     keywords = cfg.get("keywords") or []
     exclude = cfg.get("exclude_keywords") or []
@@ -137,6 +140,11 @@ def main(argv=None) -> int:
             return 1
 
     extractor = Extractor(cfg, log)
+    # With a Gemini key, posts the AI couldn't get to are saved for the next run
+    # instead of being added with blank details.
+    defer = bool(extractor.key) and cfg.get("ai", {}).get("defer_when_ai_runs_out", True)
+    deferred_since: datetime | None = None
+    deferred_count = 0
     if not extractor.enabled:
         log(f"AI step off ({extractor.disabled_reason}) — using keyword-only mode.\n")
 
@@ -174,6 +182,11 @@ def main(argv=None) -> int:
             if not passes_keywords(post, keywords, exclude):
                 seen[post.key] = today.isoformat()
                 continue
+            if defer and not extractor.enabled:
+                deferred_count += 1
+                when = post.published or (now - timedelta(days=int(cfg.get("first_run_days", 14))))
+                deferred_since = min(deferred_since or when, when)
+                continue  # not marked as seen: tomorrow's run will pick it up
             stats["matched"] += 1
             log(f"  • {post.title}\n    {post.url}")
             try:
@@ -230,6 +243,7 @@ def main(argv=None) -> int:
         + (f", {stats['irrelevant']} not relevant" if skip_irrelevant else ""),
         f"- AI: {'Gemini, ' + str(extractor.calls_made) + ' requests' if extractor.calls_made else 'off'}"
         + (f" (stopped: {extractor.disabled_reason})" if extractor.calls_made and extractor.disabled_reason else ""),
+        *([f"- Saved for the next run (AI ran out): {deferred_count} posts"] if deferred_count else []),
         "", "### By source", *[f"- {s}" for s in per_source],
     ]
     if errors:
@@ -244,6 +258,10 @@ def main(argv=None) -> int:
         cutoff = (today - timedelta(days=180)).isoformat()
         state["seen"] = {k: v for k, v in seen.items() if v >= cutoff}
         state["last_run"] = now.isoformat()
+        if deferred_since:
+            state["deferred_since"] = deferred_since.isoformat()
+        else:
+            state.pop("deferred_since", None)
         save_state(state)
     elif not args.dry_run:
         state["seen"] = seen
