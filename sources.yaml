@@ -39,18 +39,6 @@ sources:
     url: https://www.nycplaywrights.org/feeds/posts/default
     tags: [playwriting, theater]
 
-  - name: Play Submissions Helper
-    type: rss
-    # The full database is a paid membership (skipped), but the free blog posts
-    # monthly roundups like "36 Play Submissions Opps w/ November Deadlines".
-    url: https://playsubmissionshelper.com/feed/
-    fetch_full_post: true
-    content_selector: '.entry-content'
-    # Only the roundup posts, not the advice articles:
-    title_keywords: [opps, opportunities, deadlines]
-    max_posts: 5
-    tags: [playwriting]
-
   - name: PUTF
     type: substack
     url: https://putf.substack.com/
