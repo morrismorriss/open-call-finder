@@ -54,7 +54,7 @@ Without it, you'll still get rows, just with fewer details filled in.
 1. Go to **https://aistudio.google.com/** and sign in with a Google account.
 2. Click **Get API key** (left side or top right) → **Create API key**. If it asks for a
    project, let it create a new one.
-3. Copy the key (it starts with `AIza`). → This is your **GEMINI_API_KEY**.
+3. Copy the key (a long string of letters and numbers; it may start with `AIza` or `AQ.`). → This is your **GEMINI_API_KEY**. Never paste it into a chat, email or file; it goes only into GitHub Secrets (Step 4).
 4. **Don't add billing or a credit card** to that Google project. Without billing, Google can
    never charge you. You just hit a daily limit, and the tool switches to keyword-only mode
    for the rest of that day.
