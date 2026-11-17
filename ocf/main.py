@@ -19,6 +19,7 @@ import yaml
 from .extract import Extractor, passes_keywords
 from .fetch import PoliteClient, SkipSource, read_source
 from .notion_db import Notion, dedupe_keys
+from .util import normalize_url
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_FILE = ROOT / "state" / "state.json"
@@ -208,6 +209,9 @@ def main(argv=None) -> int:
                 if skip_irrelevant and not call.get("relevant", True):
                     stats["irrelevant"] += 1
                     continue
+                # The post itself is already in "Source post"; don't repeat it as the apply link.
+                if call.get("apply_url") and normalize_url(call["apply_url"]) == post.key:
+                    call["apply_url"] = None
                 keys = dedupe_keys(call, post.url)
                 if keys & existing:
                     stats["dupes"] += 1

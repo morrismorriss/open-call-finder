@@ -62,12 +62,14 @@ Reply with JSON only, exactly in this shape:
   "fee": "application fee as written, or \\"None\\" if explicitly free, or null if not stated",
   "pay": "pay / stipend / prize as written, or null",
   "location": "city/region/country, or null",
-  "remote": true if it can be done/applied for remotely with no residency travel, else false,
+  "remote": true ONLY if taking part needs no travel at all (e.g. online journal, virtual
+            festival, remote job). Being able to apply or submit online does NOT make it remote;
+            a play produced in a theater, an in-person residency or festival is false,
   "eligibility": "who can apply, short, or null",
   "disciplines": list chosen from {disciplines},
   "relevant": true if it plausibly fits the reader described above, else false,
   "summary": "1-2 plain sentences",
-  "apply_url": "direct link to apply or to the official call page if present in the post, else null"
+  "apply_url": "direct link to apply or to the organization's own call page, if the post contains one; never the URL of this post itself; else null"
 }}]}}
 
 POST TITLE: {title}
