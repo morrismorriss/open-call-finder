@@ -1,0 +1,95 @@
+name: Open Call Finder
+
+on:
+  schedule:
+    # GitHub schedules use UTC and ignore daylight saving time, so we list both
+    # times and the first step below lets only the one that is 6 AM in New York run.
+    # (Minute 7 instead of 0 because GitHub is busiest exactly on the hour.)
+    - cron: "7 10 * * *"   # 6:07 AM Eastern Daylight Time (March–November)
+    - cron: "7 11 * * *"   # 6:07 AM Eastern Standard Time (November–March)
+  workflow_dispatch:       # the "Run workflow" button
+    inputs:
+      dry_run:
+        description: "Dry run (just show what would be added; don't touch Notion)"
+        type: boolean
+        default: false
+      source:
+        description: "Only check this one source (exact name from sources.yaml). Leave blank for all."
+        type: string
+        default: ""
+
+permissions:
+  contents: read           # the run never changes your repository
+
+concurrency:
+  group: open-call-finder
+  cancel-in-progress: false
+
+jobs:
+  find-calls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Is it 6 AM in New York?
+        id: gate
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          python3 - <<'EOF'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          offset = datetime.now(ZoneInfo("America/New_York")).utcoffset().total_seconds() / 3600
+          sched, event = os.environ["SCHEDULE"], os.environ["EVENT"]
+          go = event != "schedule" or (sched == "7 10 * * *" and offset == -4) or (sched == "7 11 * * *" and offset == -5)
+          print("Running." if go else "Skipping: this is the other daylight-saving slot.")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"go={'true' if go else 'false'}\n")
+          EOF
+
+      - uses: actions/checkout@v5
+        if: steps.gate.outputs.go == 'true'
+
+      - uses: actions/setup-python@v6
+        if: steps.gate.outputs.go == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        if: steps.gate.outputs.go == 'true'
+        run: pip install -r requirements.txt
+
+      # The "already seen" list lives in GitHub's private Actions cache, not in the
+      # repository, so it stays private even when the repository is public.
+      - name: Load the already-seen list
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: ocf-state-${{ github.run_id }}
+          restore-keys: ocf-state-
+
+      - name: Find open calls
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OCF_PROFILE: ${{ vars.OCF_PROFILE }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          ONLY_SOURCE: ${{ inputs.source }}
+        run: |
+          ARGS=()
+          if [ "$DRY_RUN" = "true" ]; then ARGS+=(--dry-run); fi
+          if [ -n "$ONLY_SOURCE" ]; then ARGS+=(--source "$ONLY_SOURCE"); fi
+          python -m ocf.main "${ARGS[@]}"
+
+      - name: Save the already-seen list
+        if: always() && steps.gate.outputs.go == 'true' && inputs.dry_run != true && hashFiles('state/state.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: ocf-state-${{ github.run_id }}

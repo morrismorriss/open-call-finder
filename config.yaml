@@ -1,0 +1,77 @@
+# Settings for Open Call Finder. Lines starting with # are notes and are ignored.
+
+# Who you are, in a sentence. The AI uses this to mark calls as relevant or not.
+# To keep your real description out of a public repository, leave this generic
+# and set a GitHub *variable* named OCF_PROFILE instead (see README, Step 4).
+# OCF_PROFILE always wins over this line.
+profile: >-
+  a US-based playwright and theater maker who also works in film and performance
+
+# true  = leave out calls the AI thinks don't fit your profile (e.g. copywriting gigs)
+# false = keep everything that is an open call (you can filter in Notion instead)
+skip_irrelevant: false
+
+# A post must contain at least one of these words (anywhere in its text;
+# a word also matches longer words that start with it, e.g. "grant" -> "grants")
+# before it's sent to the AI. Keeps out obviously unrelated posts.
+keywords:
+  - open call
+  - call for
+  - calls for
+  - submission
+  - submit
+  - deadline
+  - apply
+  - application
+  - applications
+  - residency
+  - residencies
+  - fellowship
+  - grant
+  - commission
+  - rfp
+  - festival
+  - competition
+  - contest
+  - prize
+  - award
+  - seeks
+  - seeking
+  - now open
+  - open for
+  - accepting
+  - opportunit      # matches opportunity / opportunities
+  - hiring
+  - job
+  - gigs
+  - workshop
+  - labs
+  - audition
+  - pitch
+
+# If any of these words appear in a post's TITLE, the post is skipped.
+exclude_keywords:
+  - discount tickets
+  - "podcast episode:"
+
+# First run only: how many days back to look.
+first_run_days: 14
+
+# Never read more than this many new posts from one source in one run.
+max_posts_per_source: 25
+
+# Seconds to wait between requests to the same website (be polite).
+delay_seconds: 2
+
+ai:
+  enabled: true
+  # "auto" picks the newest free Gemini Flash-Lite / Flash model available to your key.
+  # You can also name one, e.g. gemini-2.5-flash-lite
+  model: auto
+  # Free tier allows roughly 10-15 requests a minute; 8 seconds apart stays well under.
+  seconds_between_calls: 8
+  # Hard cap per run, well below the free daily limit.
+  max_calls_per_run: 80
+  # Long roundup posts are cut to this many characters before sending.
+  max_chars_per_post: 15000
+  max_calls_per_post: 40

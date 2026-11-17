@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+# Run state is kept in GitHub's Actions cache, never committed.
+state/

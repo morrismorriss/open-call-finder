@@ -1,0 +1,85 @@
+# Where Open Call Finder looks. Add, remove or pause sources here — no code changes needed.
+#
+# Each source has:
+#   name:  any short name (shows up in the "Source" column in Notion; no commas)
+#   type:  rss       – a website with an RSS/Atom feed (give the feed address)
+#          substack  – a Substack newsletter (give the plain address; /feed is added for you)
+#          webpage   – a page that lists posts but has no feed (see the notes below)
+#   url:   the address
+#   tags:  optional labels, just for you
+#   enabled: false   – pauses a source without deleting it
+#
+# Extra options for type: webpage
+#   link_selector:    which links on the page are posts (a CSS selector)
+#   content_selector: where the post's text lives on each post page; if a post page
+#                     doesn't have it, the post is treated as locked/paywalled and skipped
+#   ignore_dates:     true = don't skip old posts (for directories where listings stay up)
+#
+# ---------------------------------------------------------------------------
+
+sources:
+  - name: NYC Playwrights
+    type: rss
+    # The site runs on Blogger; this is its feed address.
+    url: https://www.nycplaywrights.org/feeds/posts/default
+    tags: [playwriting, theater]
+
+  - name: Utopia Notes
+    type: substack
+    url: https://adrianshirk.substack.com/
+    tags: [writing]
+
+  - name: PUTF
+    type: substack
+    url: https://putf.substack.com/
+    tags: [theater]
+
+  - name: Freedom With Writing
+    type: rss
+    # Their newsletter's posts are also published here as a feed.
+    url: https://www.freedomwithwriting.com/freedom/feed/
+    tags: [writing, jobs]
+
+  - name: Freelance Opportunities
+    type: webpage
+    # A beehiiv newsletter with no public feed, so we read the post list on the home page.
+    # Many posts are locked to paid subscribers; those are skipped automatically.
+    url: https://www.findfreelanceopportunities.com/
+    link_selector: 'a[href^="/p/"]'
+    content_selector: '#content-blocks'
+    tags: [jobs]
+
+  - name: Res Artis
+    type: webpage
+    # A big directory (~300 listings, mostly visual-art residencies). Listings stay
+    # up for months, so we ignore post dates and rely on "already seen" + deadline.
+    # It reads at most max_posts_per_source new listings a day, so the first
+    # week or two it works through the backlog.
+    url: https://resartis.org/open-calls/
+    link_selector: 'a[href*="/open-call/"]'
+    content_selector: 'article'
+    ignore_dates: true
+    tags: [residency]
+
+  - name: Playwrights' Center
+    type: webpage
+    # Their submission listings are for members only. Logging in isn't supported,
+    # so this source is switched off. See README "Limits".
+    url: https://pwcenter.org/play-submission-opportunities/
+    members_only: true
+    enabled: false
+    tags: [playwriting]
+
+  # ---- Examples to copy when you add your own ----
+  # - name: Some Substack
+  #   type: substack
+  #   url: https://example.substack.com/
+  #
+  # - name: Some Blog
+  #   type: rss
+  #   url: https://example.org/feed/
+  #
+  # - name: Some Listings Page
+  #   type: webpage
+  #   url: https://example.org/opportunities/
+  #   link_selector: 'h2 a'
