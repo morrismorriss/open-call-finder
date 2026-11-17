@@ -86,7 +86,7 @@ about 10–30 minutes).
    | `NOTION_TOKEN` | the integration secret from Step 1 |
    | `NOTION_PARENT_PAGE_ID` | the page link from Step 1 |
    | `GEMINI_API_KEY` | the key from Step 2 (skip if you didn't get one) |
-| `OCF_PROFILE` | optional, see below |
+   | `OCF_PROFILE` | optional, see below |
 
 3. **Optional, but it makes the AI's "relevant" judgment much better:** add one more secret
    the same way:
