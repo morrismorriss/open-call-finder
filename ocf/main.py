@@ -19,7 +19,7 @@ import yaml
 from .extract import Extractor, passes_keywords
 from .fetch import PoliteClient, SkipSource, read_source
 from .notion_db import Notion, dedupe_keys
-from .util import normalize_url
+from .util import normalize_url, redact
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE_FILE = ROOT / "state" / "state.json"
@@ -136,7 +136,7 @@ def main(argv=None) -> int:
             # Don't print the database ID: on a public repository, run logs are public.
             log(f"Connected to Notion ({len(existing)} existing entries indexed)\n")
         except Exception as e:  # noqa: BLE001
-            log(f"ERROR: couldn't connect to Notion: {e}")
+            log(f"ERROR: couldn't connect to Notion: {redact(e)}")
             log("Check that the page is shared with your integration (README step 1).")
             return 1
 
@@ -166,7 +166,7 @@ def main(argv=None) -> int:
             per_source.append(f"{name}: skipped ({e})")
             continue
         except Exception as e:  # noqa: BLE001 - one bad source must not stop the rest
-            msg = f"{type(e).__name__}: {e}"
+            msg = f"{type(e).__name__}: {redact(e)}"
             log(f"  ERROR: {msg}\n")
             errors.append(f"{name}: {msg}")
             per_source.append(f"{name}: error")
@@ -193,7 +193,7 @@ def main(argv=None) -> int:
             try:
                 calls, mode = extractor.extract(post)
             except Exception as e:  # noqa: BLE001 - never fail on the AI step
-                log(f"    (extraction crashed: {e}; using keyword mode)")
+                log(f"    (extraction crashed: {redact(e)}; using keyword mode)")
                 from .extract import keyword_call
                 calls, mode = [keyword_call(post)], "keyword"
             if not calls:
@@ -223,8 +223,8 @@ def main(argv=None) -> int:
                     try:
                         notion.add(call, name, post.url)
                     except Exception as e:  # noqa: BLE001
-                        errors.append(f"{name}: Notion write failed for {call['title']!r}: {e}")
-                        log(f"    ERROR writing to Notion: {e}")
+                        errors.append(f"{name}: Notion write failed for {call['title']!r}: {redact(e)}")
+                        log(f"    ERROR writing to Notion: {redact(e)}")
                         post_ok = False
                         continue
                 existing |= keys
@@ -276,6 +276,6 @@ def main(argv=None) -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception:  # last-resort safety net: print, don't hide
-        traceback.print_exc()
+    except Exception:  # last-resort safety net: print (with IDs hidden), don't hide
+        print(redact(traceback.format_exc()), flush=True)
         sys.exit(1)

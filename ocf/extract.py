@@ -16,7 +16,7 @@ from datetime import date
 import requests
 
 from .fetch import Post
-from .util import guess_deadline, parse_iso_date
+from .util import guess_deadline, parse_iso_date, redact
 
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 FALLBACK_MODELS = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
@@ -129,7 +129,7 @@ class Extractor:
             found.sort(key=lambda t: (t[0], t[1]), reverse=True)
             self._models = [n for *_, n in found] or FALLBACK_MODELS
         except requests.RequestException as e:
-            self.log(f"  (couldn't list Gemini models: {e}; using defaults)")
+            self.log(f"  (couldn't list Gemini models: {redact(e)}; using defaults)")
             self._models = FALLBACK_MODELS
         self.log(f"  (Gemini models to try, in order: {', '.join(self._models[:4])})")
         return self._models
@@ -177,7 +177,7 @@ class Extractor:
                         self._drop(model)
                     break  # try the next model for this post
                 except requests.RequestException as e:
-                    self.log(f"  (Gemini network error: {e})")
+                    self.log(f"  (Gemini network error: {redact(e)})")
                     time.sleep(5)
                     continue
                 self.calls_made += 1
@@ -220,7 +220,7 @@ class Extractor:
                 if r.status_code >= 500:
                     time.sleep(10)
                     continue
-                self.log(f"  (Gemini error {r.status_code}: {r.text[:200]})")
+                self.log(f"  (Gemini error {r.status_code}: {redact(r.text[:300])})")
                 return None
         if not self._models:
             self.enabled, self.disabled_reason = False, "no Gemini model available (free quota used up or too slow)"

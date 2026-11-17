@@ -8,7 +8,7 @@ from datetime import date
 import requests
 
 from .extract import DISCIPLINES, TYPES
-from .util import clip, normalize_url
+from .util import clip, normalize_url, redact
 
 API = "https://api.notion.com/v1"
 NOTION_VERSION = "2025-09-03"
@@ -83,7 +83,7 @@ class Notion:
             if r.status_code >= 400:
                 msg = r.json().get("message", r.text) if r.headers.get(
                     "content-type", "").startswith("application/json") else r.text
-                raise RuntimeError(f"Notion said ({r.status_code}): {msg}")
+                raise RuntimeError(f"Notion said ({r.status_code}): {redact(msg)}")
             time.sleep(0.35)  # Notion allows ~3 requests/second
             return r.json()
         raise RuntimeError("Notion kept rate-limiting us; try again later")

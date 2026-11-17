@@ -94,3 +94,17 @@ def clip(text: str | None, limit: int) -> str:
     """Notion text fields max out at 2000 characters."""
     text = (text or "").strip()
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+_ID_RE = re.compile(
+    r"[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}"  # Notion IDs
+    r"|projects/\d+"                                                       # Google project numbers
+    r"|AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_.-]{20,}"                     # Google API keys
+    r"|(?:ntn|secret)_[0-9A-Za-z]{20,}",                                     # Notion tokens
+    re.I,
+)
+
+
+def redact(text) -> str:
+    """Hide IDs and keys before anything goes into a (possibly public) log."""
+    return _ID_RE.sub("[hidden]", str(text))
