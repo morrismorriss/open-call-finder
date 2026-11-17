@@ -45,6 +45,11 @@ def html_to_text(html: str | None) -> str:
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript", "svg", "form"]):
         tag.decompose()
+    # Keep link addresses (as "text (url)") so the AI can find the real apply link.
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        if href.startswith("http") and href not in a.get_text():
+            a.append(f" ({href})")
     text = soup.get_text(" ", strip=True)
     return re.sub(r"\s+", " ", text)
 
