@@ -71,8 +71,8 @@ Without it, you'll still get rows, just with fewer details filled in.
 
 Public or private? Either works. Your keys are safe in both, because they live in GitHub
 Secrets (Step 4), not in the files. Public repositories get unlimited free GitHub Actions
-time. Private ones get 2,000 free minutes a month, which is still plenty (this uses about
-3–10 minutes a day).
+time. Private ones get 2,000 free minutes a month, which is still enough (a run takes
+about 10–30 minutes).
 
 ### Step 4: Add your secret codes (and, optionally, a sentence about you)
 
@@ -224,7 +224,7 @@ them, `GEMINI_API_KEY` and `OCF_PROFILE` as environment variables first.
 - **Gemini's free tier:** Google changes the free models and limits from time to time, and
   doesn't promise them. The tool picks the fastest free model on its own (Flash-Lite) and
   keeps its "thinking" to a minimum. It waits 8 seconds between requests and stops at 80
-  requests or 15 minutes per run. Posts it didn't get to are saved for the next day's run, so
+  requests or 25 minutes per run. Posts it didn't get to are saved for the next day's run, so
   the first few days after setup work through a backlog. Google may use free-tier inputs to improve its products. The tool only
   sends public posts (plus your `OCF_PROFILE` sentence, if you set one).
 - **AI accuracy:** extracted details (especially deadlines, fees and "remote") are usually

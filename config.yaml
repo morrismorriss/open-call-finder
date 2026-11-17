@@ -79,7 +79,7 @@ ai:
   request_timeout_seconds: 60
   # Never spend more than this many minutes on the AI step in one run;
   # anything left is added in keyword-only mode.
-  max_minutes_per_run: 15
+  max_minutes_per_run: 25
   # true = when the AI runs out of time or quota, leave the remaining posts for the
   # next run (so they get full details) instead of adding them with blanks.
   defer_when_ai_runs_out: true

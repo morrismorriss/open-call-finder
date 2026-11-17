@@ -66,11 +66,14 @@ class PoliteClient:
             rp = robotparser.RobotFileParser()
             try:
                 r = self.session.get(base + "/robots.txt", timeout=self.timeout)
+                # Follows RFC 9309: a 4xx answer (missing, or the site refusing to show
+                # robots.txt to cloud computers) means "no rules"; a 5xx server error
+                # means "try later", so we stay away this run.
                 if r.status_code == 200:
                     rp.parse(r.text.splitlines())
-                elif r.status_code in (401, 403):
+                elif r.status_code >= 500:
                     rp.disallow_all = True
-                else:  # 404 etc. means "no rules"
+                else:
                     rp.parse([])
             except requests.RequestException:
                 rp.parse([])  # can't read robots.txt: treat as no rules

@@ -30,48 +30,14 @@
 # ---------------------------------------------------------------------------
 
 sources:
+  # Sources are checked in this order, and the AI has a daily time limit, so the
+  # ones you care about most go first. Anything it doesn't reach waits for tomorrow.
+
   - name: NYC Playwrights
     type: rss
     # The site runs on Blogger; this is its feed address.
     url: https://www.nycplaywrights.org/feeds/posts/default
     tags: [playwriting, theater]
-
-  - name: Utopia Notes
-    type: substack
-    url: https://adrianshirk.substack.com/
-    tags: [writing]
-
-  - name: PUTF
-    type: substack
-    url: https://putf.substack.com/
-    tags: [theater]
-
-  - name: Freedom With Writing
-    type: rss
-    # Their newsletter's posts are also published here as a feed.
-    url: https://www.freedomwithwriting.com/freedom/feed/
-    tags: [writing, jobs]
-
-  - name: Freelance Opportunities
-    type: webpage
-    # A beehiiv newsletter with no public feed, so we read the post list on the home page.
-    # Many posts are locked to paid subscribers; those are skipped automatically.
-    url: https://www.findfreelanceopportunities.com/
-    link_selector: 'a[href^="/p/"]'
-    content_selector: '#content-blocks'
-    tags: [jobs]
-
-  - name: Res Artis
-    type: webpage
-    # A big directory (~300 listings, mostly visual-art residencies). Listings stay
-    # up for months, so we ignore post dates and rely on "already seen" + deadline.
-    # It reads at most max_posts_per_source new listings a day, so the first
-    # week or two it works through the backlog.
-    url: https://resartis.org/open-calls/
-    link_selector: 'a[href*="/open-call/"]'
-    content_selector: 'article'
-    ignore_dates: true
-    tags: [residency]
 
   - name: Play Submissions Helper
     type: rss
@@ -85,39 +51,15 @@ sources:
     max_posts: 5
     tags: [playwriting]
 
-  - name: CallFor
-    type: rss
-    # Mostly visual-art, photography and exhibition calls; the feed has teasers only.
-    url: https://www.callfor.org/feed/
-    fetch_full_post: true
-    max_posts: 10
-    tags: [visual art]
+  - name: PUTF
+    type: substack
+    url: https://putf.substack.com/
+    tags: [theater]
 
-  - name: Artist Communities Alliance
-    type: webpage
-    # Residency directory (overlaps with Res Artis; duplicates are caught).
-    url: https://artistcommunities.org/directory/open-calls
-    link_selector: 'a[href^="/directory/open-calls/"]'
-    content_selector: 'article'
-    ignore_dates: true
-    tags: [residency]
-
-  - name: TransArtists
-    type: webpage
-    # Asks bots to wait 30 seconds between pages, so we read only a few per day.
-    url: https://www.transartists.org/en/transartists-calls
-    link_selector: 'a[href^="/en/news/"]'
-    ignore_dates: true
-    max_posts: 6
-    tags: [residency]
-
-  - name: opencalls.ai
-    type: webpage
-    url: https://opencalls.ai/
-    link_selector: 'a[href^="/opencalls/"]'
-    content_selector: 'main'
-    ignore_dates: true
-    max_posts: 15
+  - name: Utopia Notes
+    type: substack
+    url: https://adrianshirk.substack.com/
+    tags: [writing]
 
   - name: Art Jobs Performance
     type: webpage
@@ -137,6 +79,67 @@ sources:
     ignore_dates: true
     max_posts: 10
     tags: [film]
+
+  - name: opencalls.ai
+    type: webpage
+    url: https://opencalls.ai/
+    link_selector: 'a[href^="/opencalls/"]'
+    content_selector: 'main'
+    ignore_dates: true
+    max_posts: 15
+
+  - name: Artist Communities Alliance
+    type: webpage
+    # Residency directory (overlaps with Res Artis; duplicates are caught).
+    url: https://artistcommunities.org/directory/open-calls
+    link_selector: 'a[href^="/directory/open-calls/"]'
+    content_selector: 'article'
+    ignore_dates: true
+    tags: [residency]
+
+  - name: Res Artis
+    type: webpage
+    # A big directory (~300 listings, mostly visual-art residencies). Listings stay
+    # up for months, so we ignore post dates and rely on "already seen" + deadline.
+    # It reads at most max_posts_per_source new listings a day, so the first
+    # week or two it works through the backlog.
+    url: https://resartis.org/open-calls/
+    link_selector: 'a[href*="/open-call/"]'
+    content_selector: 'article'
+    ignore_dates: true
+    tags: [residency]
+
+  - name: TransArtists
+    type: webpage
+    # Asks bots to wait 30 seconds between pages, so we read only a few per day.
+    url: https://www.transartists.org/en/transartists-calls
+    link_selector: 'a[href^="/en/news/"]'
+    ignore_dates: true
+    max_posts: 6
+    tags: [residency]
+
+  - name: CallFor
+    type: rss
+    # Mostly visual-art, photography and exhibition calls; the feed has teasers only.
+    url: https://www.callfor.org/feed/
+    fetch_full_post: true
+    max_posts: 10
+    tags: [visual art]
+
+  - name: Freedom With Writing
+    type: rss
+    # Their newsletter's posts are also published here as a feed.
+    url: https://www.freedomwithwriting.com/freedom/feed/
+    tags: [writing, jobs]
+
+  - name: Freelance Opportunities
+    type: webpage
+    # A beehiiv newsletter with no public feed, so we read the post list on the home page.
+    # Many posts are locked to paid subscribers; those are skipped automatically.
+    url: https://www.findfreelanceopportunities.com/
+    link_selector: 'a[href^="/p/"]'
+    content_selector: '#content-blocks'
+    tags: [jobs]
 
   - name: Playwrights' Center
     type: webpage
