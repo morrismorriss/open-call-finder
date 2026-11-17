@@ -202,6 +202,10 @@ def main(argv=None) -> int:
                 seen[post.key] = today.isoformat()
                 continue
             post_ok = True
+            if len(calls) == 1 and "postonly:" + post.key in existing:
+                stats["dupes"] += 1  # this post is already in Notion
+                seen[post.key] = today.isoformat()
+                continue
             for call in calls:
                 if call.get("deadline") and call["deadline"] < today:
                     stats["expired"] += 1
@@ -227,7 +231,7 @@ def main(argv=None) -> int:
                         log(f"    ERROR writing to Notion: {redact(e)}")
                         post_ok = False
                         continue
-                existing |= keys
+                existing |= keys | {"postonly:" + post.key}
                 stats["added"] += 1
                 added_here += 1
             if post_ok:

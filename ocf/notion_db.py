@@ -154,7 +154,12 @@ class Notion:
                     "type": (p.get("Type", {}).get("select") or {}).get("name"),
                     "apply_url": p.get("Apply link", {}).get("url"),
                 }
-                keys |= dedupe_keys(call, p.get("Source post", {}).get("url"))
+                post_url = p.get("Source post", {}).get("url")
+                keys |= dedupe_keys(call, post_url)
+                if post_url:
+                    # Lets a single-call post be recognised even if the AI names it
+                    # differently on a later run.
+                    keys.add("postonly:" + normalize_url(post_url))
             if not res.get("has_more"):
                 return keys
             cursor = res.get("next_cursor")
