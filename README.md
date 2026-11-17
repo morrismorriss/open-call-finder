@@ -86,15 +86,17 @@ about 10–30 minutes).
    | `NOTION_TOKEN` | the integration secret from Step 1 |
    | `NOTION_PARENT_PAGE_ID` | the page link from Step 1 |
    | `GEMINI_API_KEY` | the key from Step 2 (skip if you didn't get one) |
+| `OCF_PROFILE` | optional, see below |
 
-3. **Optional, but it makes the AI's "relevant" judgment much better.** Switch to the
-   **Variables** tab → **New repository variable**:
+3. **Optional, but it makes the AI's "relevant" judgment much better:** add one more secret
+   the same way:
    - Name: `OCF_PROFILE`
-   - Value: one sentence about you and your work, for example
+   - Secret: one sentence about you and your work, for example
      *"a Chicago-based choreographer and dance-theater maker who also writes."*
 
-   It stays in your settings, not in the public files. It replaces the generic `profile` line
-   in `config.yaml`.
+   Make it a **secret**, not a *variable*. On a public repository GitHub prints variables
+   in the run log for anyone to read, but it hides secrets. This sentence replaces the
+   generic `profile` line in `config.yaml`.
 
 You don't need `NOTION_DATABASE_ID`. The tool finds its database on your page by itself. Add it
 only if you move the database to a different page (use the database's link).

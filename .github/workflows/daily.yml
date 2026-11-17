@@ -80,7 +80,8 @@ jobs:
           NOTION_PARENT_PAGE_ID: ${{ secrets.NOTION_PARENT_PAGE_ID }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          OCF_PROFILE: ${{ vars.OCF_PROFILE }}
+          # A secret, not a variable: GitHub prints variables in the (public) log.
+          OCF_PROFILE: ${{ secrets.OCF_PROFILE }}
           DRY_RUN: ${{ inputs.dry_run }}
           ONLY_SOURCE: ${{ inputs.source }}
         run: |

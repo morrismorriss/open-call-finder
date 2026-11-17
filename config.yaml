@@ -2,7 +2,7 @@
 
 # Who you are, in a sentence. The AI uses this to mark calls as relevant or not.
 # To keep your real description out of a public repository, leave this generic
-# and set a GitHub *variable* named OCF_PROFILE instead (see README, Step 4).
+# and set a GitHub *secret* named OCF_PROFILE instead (see README, Step 4).
 # OCF_PROFILE always wins over this line.
 profile: >-
   a US-based playwright and theater maker who also works in film and performance
