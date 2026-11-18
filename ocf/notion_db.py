@@ -18,8 +18,14 @@ DB_TITLE = "Open Calls"
 def page_id_from(value: str) -> str:
     """Accept a raw ID or a full Notion link and return the 32-character ID."""
     value = (value or "").strip().split("?")[0].split("#")[0]
-    # The ID is always the last 32 hex characters (links look like .../Writer-World-<id>).
-    m = re.search(r"([0-9a-f]{32})$", value.rstrip("/").replace("-", ""), re.I)
+    compact = value.rstrip("/").replace("-", "")
+    # A bare hex string must be exactly 32 characters; refuse to silently trim a longer
+    # one (a URL always contains non-hex characters, so this only guards raw IDs).
+    if re.fullmatch(r"[0-9a-f]+", compact, re.I) and len(compact) != 32:
+        raise ValueError(f"{value!r} isn't a 32-character Notion ID")
+    # In a link, the ID is always the last 32 hex characters
+    # (links look like .../Writer-World-<id>).
+    m = re.search(r"([0-9a-f]{32})$", compact, re.I)
     if not m:
         raise ValueError(f"couldn't find a Notion page ID in {value!r}")
     return m.group(1).lower()

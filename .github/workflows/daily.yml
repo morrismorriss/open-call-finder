@@ -48,12 +48,12 @@ jobs:
               f.write(f"go={'true' if go else 'false'}\n")
           EOF
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
         if: steps.gate.outputs.go == 'true'
         with:
           persist-credentials: false   # don't leave GitHub's token on the machine
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         if: steps.gate.outputs.go == 'true'
         with:
           python-version: "3.12"
@@ -67,7 +67,7 @@ jobs:
       # repository, so it stays private even when the repository is public.
       - name: Load the already-seen list
         if: steps.gate.outputs.go == 'true'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: state
           key: ocf-state-${{ github.run_id }}
@@ -92,7 +92,7 @@ jobs:
 
       - name: Save the already-seen list
         if: always() && steps.gate.outputs.go == 'true' && inputs.dry_run != true && hashFiles('state/state.json') != ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: state
           key: ocf-state-${{ github.run_id }}

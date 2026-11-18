@@ -1,7 +1,9 @@
 """Reading sources: RSS/Atom feeds, Substack newsletters and plain web pages."""
 from __future__ import annotations
 
+import ipaddress
 import re
+import socket
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -115,6 +117,31 @@ def looks_paywalled(text: str) -> bool:
     return any(m in low for m in PAYWALL_MARKERS)
 
 
+def _is_public_http_url(url: str) -> bool:
+    """True only for http(s) URLs whose host is a public address.
+
+    Links are read from pages we don't control, so following them blindly lets a
+    page point us at internal services (cloud metadata, localhost, LAN hosts).
+    The configured source URL is trusted and isn't passed through here.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        return False
+    host = parts.hostname
+    if not host:
+        return False
+    try:
+        addrs = [ipaddress.ip_address(host)]
+    except ValueError:
+        try:
+            addrs = [ipaddress.ip_address(info[4][0])
+                     for info in socket.getaddrinfo(host, None)]
+        except (socket.gaierror, UnicodeError):
+            # Can't resolve: the request would fail anyway; let it try.
+            return True
+    return all(a.is_global for a in addrs)
+
+
 def feed_url_for(src: dict) -> str:
     url = src["url"].rstrip("/")
     if src.get("type") == "substack" and not url.endswith("/feed"):
@@ -161,6 +188,8 @@ def read_feed(client: PoliteClient, src: dict, since: datetime,
         if src.get("fetch_full_post") and link:
             # The feed only has a teaser: open the post itself (new posts only).
             if (normalize_url(link) or link) in seen:
+                continue
+            if not _is_public_http_url(link):
                 continue
             if len(posts) >= max_posts:
                 break
@@ -230,6 +259,8 @@ def read_webpage(client: PoliteClient, src: dict, since: datetime,
             continue
         href = urljoin(src["url"], a.get("href", ""))
         if not href.startswith("http"):
+            continue
+        if not _is_public_http_url(href):
             continue
         key = normalize_url(href)
         if key and key not in links:

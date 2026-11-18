@@ -141,9 +141,11 @@ def main(argv=None) -> int:
             return 1
 
     extractor = Extractor(cfg, log)
-    # With a Gemini key, posts the AI couldn't get to are saved for the next run
-    # instead of being added with blank details.
-    defer = bool(extractor.key) and cfg.get("ai", {}).get("defer_when_ai_runs_out", True)
+    # If the AI is on and later runs out (quota/time), posts it didn't reach are saved
+    # for the next run instead of being added with blank details. Only defer when the
+    # AI actually started enabled; a deliberate --no-ai / ai.enabled: false run must
+    # still add posts in keyword mode.
+    defer = extractor.enabled and cfg.get("ai", {}).get("defer_when_ai_runs_out", True)
     deferred_since: datetime | None = None
     deferred_count = 0
     if not extractor.enabled:
@@ -206,7 +208,7 @@ def main(argv=None) -> int:
                 stats["dupes"] += 1  # this post is already in Notion
                 seen[post.key] = today.isoformat()
                 continue
-            for call in calls:
+            for idx, call in enumerate(calls):
                 if call.get("deadline") and call["deadline"] < today:
                     stats["expired"] += 1
                     continue
@@ -216,12 +218,17 @@ def main(argv=None) -> int:
                 # The post itself is already in "Source post"; don't repeat it as the apply link.
                 if call.get("apply_url") and normalize_url(call["apply_url"]) == post.key:
                     call["apply_url"] = None
+                # Fill the title before building dedupe keys: the "post:" key includes the
+                # title, so an untitled call would otherwise get a key that never matches the
+                # one recomputed from the saved Notion row.
+                if not call.get("title"):
+                    # Distinct calls in a roundup must not collapse into one row just
+                    # because the AI left their titles blank.
+                    call["title"] = post.title if len(calls) == 1 else f"{post.title} ({idx + 1})"
                 keys = dedupe_keys(call, post.url)
                 if keys & existing:
                     stats["dupes"] += 1
                     continue
-                if not call.get("title"):
-                    call["title"] = post.title
                 log(fmt_call(call) + ("" if mode == "ai" else "   (keyword mode)"))
                 if notion:
                     try:

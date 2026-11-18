@@ -231,6 +231,12 @@ them, `GEMINI_API_KEY` and `OCF_PROFILE` as environment variables first.
   sends public posts (plus your `OCF_PROFILE` sentence, if you set one).
 - **AI accuracy:** extracted details (especially deadlines, fees and "remote") are usually
   right but sometimes wrong. Always check the official call before applying.
+- **Watch out for suspicious links.** The AI reads text from public pages, and a page can
+  contain wording designed to trick it into filling in a fake call or a bad `Apply link`.
+  Treat every apply link as untrusted: check that it points at the real organization (not a
+  look-alike domain or a URL shortener), hover before clicking, and never enter payment,
+  login or personal details on a page you reached this way. When in doubt, find the call on
+  the organization's own website instead.
 - **Duplicates across sources** are caught when two posts share the same apply link, or the
   same organization + deadline + type. A call reposted with a different link and no clear
   deadline can still show up twice.
@@ -270,6 +276,7 @@ ocf/                         ← the program (you shouldn't need to touch it)
   notion_db.py creates/reads/writes the Notion database
   util.py      link cleanup, date parsing
 requirements.txt             ← Python libraries used
+tests/                       ← regression tests (python -m unittest discover -s tests)
 ```
 
 ## License
